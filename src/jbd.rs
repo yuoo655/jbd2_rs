@@ -6,11 +6,13 @@ use super::prelude::*;
 use super::transaction::*;
 
 impl JbdFs {
+    pub fn jbd_get_fs(&self) {}
+
     pub fn journal_start(&mut self) {
         let mut journal = JbdJournal {
             first: self.sb.first,
             start: self.sb.first,
-            last: 0,
+            last: self.sb.first,
             trans_id: self.sb.sequence + 1,
             alloc_trans_id: 0,
             block_size: self.sb.blocksize,
@@ -91,7 +93,8 @@ impl JbdFs {
 
         log::debug!(
             "start_trans_id: {:x?} start_block {:x?}",
-            this_trans_id, this_block
+            this_trans_id,
+            this_block
         );
 
         // let mut start_trans_id =
@@ -198,7 +201,6 @@ impl JbdFs {
         }
     }
     fn jbd_replay_block_tags(&self, tag_info: &TagInfo, replay_arg: &mut ReplayArg) {
-
         *replay_arg.this_block += 1;
 
         // self.wrap(replay_arg.this_block);

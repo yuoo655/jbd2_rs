@@ -12,38 +12,6 @@ pub use journal::*;
 pub use prelude::*;
 pub use transaction::*;
 
-#[derive(Debug)]
-pub struct Disk;
-
-impl BlockDevice for Disk {
-    fn read_offset(&self, offset: usize) -> Vec<u8> {
-        use std::fs::OpenOptions;
-        use std::io::{Read, Seek};
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open("ex4.img")
-            .unwrap();
-        let mut buf = vec![0u8; BLOCK_SIZE as usize];
-        let r = file.seek(std::io::SeekFrom::Start(offset as u64));
-        let r = file.read_exact(&mut buf);
-
-        buf
-    }
-
-    fn write_offset(&self, offset: usize, data: &[u8]) {
-        use std::fs::OpenOptions;
-        use std::io::{Read, Seek, Write};
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open("ex4.img")
-            .unwrap();
-
-        let r = file.seek(std::io::SeekFrom::Start(offset as u64));
-        let r = file.write_all(&data);
-    }
-}
 
 use log::{Level, LevelFilter, Metadata, Record};
 
@@ -91,19 +59,94 @@ enum ColorCode {
     BrightBlack = 90,
 }
 
+
+
+#[derive(Debug)]
+pub struct Disk;
+
+impl BlockDevice for Disk {
+    fn read_offset(&self, offset: usize) -> Vec<u8> {
+        use std::fs::OpenOptions;
+        use std::io::{Read, Seek};
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("ex4.img")
+            .unwrap();
+        let mut buf = vec![0u8; BLOCK_SIZE as usize];
+        let r = file.seek(std::io::SeekFrom::Start(offset as u64));
+        let r = file.read_exact(&mut buf);
+
+        buf
+    }
+
+    fn write_offset(&self, offset: usize, data: &[u8]) {
+        use std::fs::OpenOptions;
+        use std::io::{Read, Seek, Write};
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("ex4.img")
+            .unwrap();
+
+        let r = file.seek(std::io::SeekFrom::Start(offset as u64));
+        let r = file.write_all(&data);
+    }
+}
+
+
+#[derive(Debug)]
+pub struct Ext4;
+
+
+impl Ext4Fs for Ext4{
+    fn get_journal_block(&self) -> Vec<u8> {
+        let offset = 0x20000 * BLOCK_SIZE;
+        use std::fs::OpenOptions;
+        use std::io::{Read, Seek};
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("ex4.img")
+            .unwrap();
+        let mut buf = vec![0u8; BLOCK_SIZE as usize];
+        let r = file.seek(std::io::SeekFrom::Start(offset as u64));
+        let r = file.read_exact(&mut buf);
+        buf
+    }
+
+    fn get_superblock(&self) -> Vec<u8> {
+        let offset = 0x1000;
+        use std::fs::OpenOptions;
+        use std::io::{Read, Seek};
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("ex4.img")
+            .unwrap();
+        let mut buf = vec![0u8; BLOCK_SIZE as usize];
+        let r = file.seek(std::io::SeekFrom::Start(offset as u64));
+        let r = file.read_exact(&mut buf);
+        buf
+    }
+}
+
+
+
+
 fn main() {
     log::set_logger(&SimpleLogger).unwrap();
     log::set_max_level(LevelFilter::Info);
     let disk = Arc::new(Disk);
-
+    let ext4 = Arc::new(Ext4);
     let data = disk.read_offset(0x20000);
-
     let jbd_sb = JbdSb::try_from(data).unwrap();
 
     let mut jbd_fs = JbdFs {
         sb: jbd_sb,
         journal: JbdJournal::new(),
         bdev: disk,
+        ext4fs: ext4,
         dirty: false,
         curr_trans: None,
     };

@@ -196,6 +196,7 @@ pub struct JbdFs {
     pub journal: JbdJournal,
     pub sb: JbdSb,
     pub bdev: Arc<dyn BlockDevice>,
+    pub ext4fs: Arc<dyn Ext4Fs>,
     pub dirty: bool,
     pub curr_trans: Option<Arc<RefCell<Transaction>>>,
 }
@@ -342,4 +343,10 @@ pub trait BlockDevice: Send + Sync + Any + Debug {
 
     // // 刷新缓冲区
     // fn flush_buffer(&self, buffer: &Buffer);
+}
+
+
+pub trait Ext4Fs: Send + Sync + Any + Debug {
+    fn get_journal_block(&self) -> Vec<u8>;
+    fn get_superblock(&self) -> Vec<u8>;
 }
